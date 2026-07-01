@@ -1,0 +1,3208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esports OS | Free Fire Management Portal</title>
+    <meta name="description" content="A premium command center and statistics dashboard for professional Free Fire esports teams. Monitor roster statistics, track tournament history, and customize themes.">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* ==========================================================================
+           THEME ENGINE & VARIABLES
+           ========================================================================== */
+        :root {
+            --hue: 280;
+            --accent: hsl(var(--hue), 100%, 65%);
+            --accent-glow: hsl(var(--hue), 100%, 65%, 0.3);
+            --accent-dim: hsl(var(--hue), 60%, 45%);
+            --bg-dark: #07070c;
+            --bg-card: rgba(13, 13, 23, 0.45);
+            --glass-bg: rgba(15, 15, 28, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --glass-border-hover: rgba(255, 255, 255, 0.12);
+            --text-main: #f1f1f6;
+            --text-muted: #8e8ea8;
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            --font-heading: 'Rajdhani', sans-serif;
+            --font-body: 'Outfit', sans-serif;
+            --blur: 20px;
+        }
+
+        /* ==========================================================================
+           RESET & BASE STYLES
+           ========================================================================== */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Ambient background mesh and grid */
+        .bg-cyber-grid {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -2;
+            pointer-events: none;
+        }
+        
+        .bg-glows {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 10% 20%, hsl(var(--hue), 100%, 50%, 0.07), transparent 45%),
+                radial-gradient(circle at 85% 75%, hsl(calc(var(--hue) + 120), 100%, 50%, 0.05), transparent 45%);
+            z-index: -3;
+            pointer-events: none;
+            filter: blur(80px);
+            animation: driftingGlows 20s infinite alternate ease-in-out;
+        }
+
+        @keyframes driftingGlows {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.1) translate(2%, 3%); }
+        }
+
+        /* ==========================================================================
+           LAYOUT & Centered Floating Navigation Dock
+           ========================================================================== */
+        .app-layout {
+            display: block;
+            min-height: 100vh;
+            width: 100vw;
+        }
+
+        .bottom-dock {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 0.6rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 25px var(--accent-glow);
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .bottom-dock:hover {
+            border-color: var(--glass-border-hover);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 35px var(--accent-glow);
+        }
+
+        .dock-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px var(--accent-glow);
+            font-size: 1.2rem;
+            color: #000;
+            cursor: pointer;
+            flex-shrink: 0;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .dock-logo:hover {
+            transform: scale(1.05);
+        }
+        .dock-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .dock-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            color: var(--text-muted);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            text-decoration: none;
+        }
+
+        .dock-link i {
+            font-size: 1.25rem;
+            transition: var(--transition);
+        }
+
+        .dock-link:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateY(-3px);
+        }
+
+        .dock-link.active {
+            color: var(--accent);
+            background: rgba(255, 255, 255, 0.03);
+            box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.02);
+        }
+
+        /* Active dot above icon */
+        .dock-link::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .dock-link.active::before {
+            opacity: 1;
+        }
+
+        /* Tooltip above dock items */
+        .dock-link::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translate(-50%, 8px);
+            background: rgba(10, 10, 18, 0.95);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            pointer-events: none;
+            opacity: 0;
+            transition: var(--transition);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            white-space: nowrap;
+            z-index: 110;
+        }
+
+        .dock-link:hover::after {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        .main-viewport {
+            flex: 1;
+            padding: 3rem 3rem 10rem; /* comfortable padding for bottom dock */
+            min-height: 100vh;
+            overflow-y: auto;
+            position: relative;
+            scroll-behavior: smooth;
+            width: 100%; /* Occupies full screen */
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { 
+            width: 8px; 
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track { 
+            background: var(--bg-dark); 
+        }
+        ::-webkit-scrollbar-thumb { 
+            background: rgba(255, 255, 255, 0.05); 
+            border-radius: 10px; 
+        }
+        ::-webkit-scrollbar-thumb:hover { 
+            background: var(--accent); 
+        }
+
+        /* ==========================================================================
+           COMPONENTS
+           ========================================================================== */
+        .glass-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, transparent 60%, rgba(255, 255, 255, 0.015) 100%);
+            pointer-events: none;
+        }
+
+        .glass-panel:hover {
+            border-color: var(--glass-border-hover);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 15px rgba(var(--accent-glow), 0.05);
+            transform: translateY(-2px);
+        }
+
+        /* HUD decoration corners for extreme gaming aesthetic */
+        .hud-corner {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border: 1px solid var(--accent);
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.6;
+        }
+        .hud-tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+        .hud-tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+        .hud-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+        .hud-br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+        /* Typography */
+        h1, h2, h3, h4 {
+            font-family: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #fff;
+        }
+
+        /* Custom buttons */
+        .btn-neon {
+            background: linear-gradient(135deg, hsl(var(--hue), 100%, 65%, 0.08), hsl(var(--hue), 100%, 65%, 0.02));
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.75rem 1.75rem;
+            font-family: var(--font-heading);
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-neon::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%; width: 120%; height: 120%;
+            background: var(--accent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+            z-index: -1;
+            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+        }
+
+        .btn-neon:hover {
+            color: #000;
+            box-shadow: 0 0 20px var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        .btn-neon:hover::after {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .btn-solid {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            color: #000;
+            border: none;
+        }
+
+        .btn-solid:hover {
+            box-shadow: 0 0 25px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-solid::after { 
+            display: none; 
+        }
+
+        .btn-danger {
+            color: #ff477e;
+            border-color: #ff477e;
+            background: rgba(255, 71, 126, 0.04);
+        }
+
+        .btn-danger::after {
+            background: #ff477e;
+        }
+
+        .btn-danger:hover {
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255, 71, 126, 0.35);
+        }
+
+        /* Form Inputs */
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-family: var(--font-heading);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-glass {
+            width: 100%;
+            background: rgba(8, 8, 16, 0.5);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 0.8rem 1.2rem;
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .input-glass:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+            background: rgba(8, 8, 16, 0.8);
+        }
+
+        select.input-glass {
+            cursor: pointer;
+            appearance: none;
+            padding-right: 2.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238e8ea8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2rem;
+        }
+
+        /* View Switching and Fade Animation */
+        .view-section {
+            display: none;
+            animation: fadeIn 0.45s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==========================================================================
+           DASHBOARD BANNER & STATS
+           ========================================================================== */
+        .dashboard-hero {
+            position: relative;
+            padding: 3rem;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, rgba(20, 10, 35, 0.6), rgba(10, 15, 30, 0.6));
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            margin-bottom: 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hero-content {
+            z-index: 2;
+        }
+
+        .hero-tag {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hero-tag::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .hero-title {
+            font-family: var(--font-heading);
+            font-size: 3.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1.1;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #ffffff, #dcdcf0, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .hero-motto {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 500px;
+        }
+
+        .hero-logo-large {
+            width: 120px;
+            height: 120px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 30px var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #000;
+            position: relative;
+            overflow: hidden;
+            animation: floatingHeroLogo 6s infinite ease-in-out;
+            z-index: 2;
+        }
+
+        .hero-logo-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero-logo-large::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shineEffect 4s infinite linear;
+        }
+
+        @keyframes floatingHeroLogo {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card-premium {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .stat-card-premium:hover {
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 15px var(--accent-glow);
+            transform: translateY(-3px);
+        }
+
+        .stat-icon-wrapper {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-glow);
+            transition: var(--transition);
+        }
+
+        .stat-card-premium:hover .stat-icon-wrapper {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent);
+            text-shadow: none;
+        }
+
+        .stat-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-num {
+            font-family: var(--font-heading);
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+
+        .stat-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        /* ==========================================================================
+           ROSTER STYLING
+           ========================================================================== */
+        .filters-bar {
+            margin-bottom: 2rem;
+            padding: 1.25rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1.1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-box input {
+            padding-left: 2.8rem;
+            height: 46px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-controls select {
+            width: auto;
+            height: 46px;
+            min-width: 150px;
+        }
+
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .player-card-premium {
+            position: relative;
+            height: 400px;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: #090911;
+            border: 1px solid var(--glass-border);
+            transition: var(--transition);
+        }
+
+        .player-card-premium:hover {
+            border-color: var(--accent);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 25px var(--accent-glow);
+            transform: translateY(-5px);
+        }
+
+        .player-card-premium .image-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0e0e1a, #07070d);
+        }
+
+        .player-card-premium img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.65;
+            transition: transform 0.6s var(--transition), opacity var(--transition);
+        }
+
+        .player-card-premium:hover img {
+            transform: scale(1.08);
+            opacity: 0.85;
+        }
+
+        /* Fallback avatar styles */
+        .player-fallback-avatar {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0; left: 0;
+            background: linear-gradient(135deg, #0f0f20 0%, #06060c 100%);
+            z-index: 1;
+        }
+
+        .player-fallback-avatar svg {
+            width: 40%;
+            height: auto;
+            fill: var(--accent);
+            filter: drop-shadow(0 0 10px var(--accent-glow));
+            opacity: 0.75;
+            margin-bottom: 0.5rem;
+        }
+
+        .player-fallback-text {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        .player-card-premium .card-overlay {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(to top, #06060c 0%, rgba(6, 6, 12, 0.9) 60%, transparent 100%);
+            padding: 2rem 1.5rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            z-index: 2;
+        }
+
+        .player-card-premium .role-badge {
+            align-self: flex-start;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 30px;
+            background: hsl(var(--hue), 100%, 65%, 0.1);
+            color: var(--accent);
+            border: 1px solid hsl(var(--hue), 100%, 65%, 0.25);
+            margin-bottom: 0.6rem;
+            font-family: var(--font-heading);
+        }
+
+        .player-card-premium .player-ign {
+            font-family: var(--font-heading);
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #fff;
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+
+        .player-card-premium .player-name {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .player-card-premium .mini-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .player-card-premium .mini-stat-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .player-card-premium .mini-stat-val {
+            font-family: var(--font-heading);
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #fff;
+        }
+
+        .player-card-premium .mini-stat-lbl {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .player-card-premium .card-actions {
+            position: absolute;
+            top: 1rem; right: 1rem;
+            z-index: 10;
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: opacity var(--transition), transform var(--transition);
+        }
+
+        .player-card-premium:hover .card-actions {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ==========================================================================
+           TOURNAMENTS LIST STYLING
+           ========================================================================== */
+        .sub-tabs-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0.75rem;
+        }
+
+        .sub-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            padding: 0.25rem 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sub-tab-btn:hover {
+            color: #fff;
+        }
+
+        .sub-tab-btn.active {
+            color: var(--accent);
+        }
+
+        .sub-tab-btn::after {
+            content: '';
+            position: absolute;
+            bottom: -0.85rem;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            opacity: 0;
+            transition: var(--transition);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .sub-tab-btn.active::after {
+            opacity: 1;
+        }
+
+        .tournament-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .tournament-card-premium {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem 2rem;
+            display: grid;
+            grid-template-columns: 3.5fr 1.2fr 1.5fr 1.5fr auto;
+            align-items: center;
+            gap: 1.5rem;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .tournament-card-premium:hover {
+            border-color: var(--glass-border-hover);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+        }
+
+        .tourney-main {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .tourney-trophy {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .tournament-card-premium.gold-placement .tourney-trophy {
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.08);
+            border-color: rgba(255, 215, 0, 0.2);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);
+        }
+        
+        .tournament-card-premium.silver-placement .tourney-trophy {
+            color: #c0c0c0;
+            background: rgba(192, 192, 192, 0.08);
+            border-color: rgba(192, 192, 192, 0.2);
+        }
+
+        .tournament-card-premium.bronze-placement .tourney-trophy {
+            color: #cd7f32;
+            background: rgba(205, 127, 50, 0.08);
+            border-color: rgba(205, 127, 50, 0.2);
+        }
+
+        .tourney-name {
+            font-family: var(--font-heading);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .tourney-subtext {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 4px;
+        }
+
+        .tourney-stat-block {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tourney-stat-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .tourney-stat-val {
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .tourney-placement-highlight {
+            font-family: var(--font-heading);
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Status Badge for Upcoming Tournaments */
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            font-family: var(--font-heading);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            align-self: flex-start;
+        }
+        
+        .status-scheduled {
+            background: rgba(0, 195, 255, 0.1);
+            color: #00c3ff;
+            border: 1px solid rgba(0, 195, 255, 0.25);
+        }
+        
+        .status-reg-open {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.25);
+        }
+        
+        .status-ongoing {
+            background: rgba(255, 115, 0, 0.1);
+            color: #ff7300;
+            border: 1px solid rgba(255, 115, 0, 0.25);
+            animation: statusPulse 1.5s infinite alternate;
+        }
+        
+        @keyframes statusPulse {
+            0% { opacity: 0.8; box-shadow: 0 0 4px rgba(255, 115, 0, 0.15); }
+            100% { opacity: 1; box-shadow: 0 0 12px rgba(255, 115, 0, 0.4); }
+        }
+
+        @media (max-width: 900px) {
+            .tournament-card-premium {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+            .tourney-stat-block {
+                flex-direction: row;
+                justify-content: space-between;
+                border-bottom: 1px solid rgba(255,255,255,0.03);
+                padding-bottom: 0.5rem;
+            }
+            .tourney-stat-lbl { margin-bottom: 0; }
+        }
+
+        /* ==========================================================================
+           COMMAND CENTER (ADMIN PANEL)
+           ========================================================================== */
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        /* Theme Preset Buttons */
+        .preset-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform var(--transition), border-color var(--transition);
+            border: 2px solid transparent;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .preset-btn:hover {
+            transform: scale(1.15);
+        }
+        .preset-btn.active {
+            border-color: #fff;
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255,255,255,0.4);
+        }
+
+        /* ==========================================================================
+           MODALS & FORMS
+           ========================================================================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(4, 4, 8, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(var(--accent-glow), 0.1);
+            animation: modalScaleUp 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes modalScaleUp {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* PIN PAD STYLES */
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--glass-border-hover);
+            transition: background-color var(--transition), box-shadow var(--transition);
+        }
+        .pin-dot.active {
+            background-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            border-color: var(--accent);
+        }
+
+        .pin-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 58px;
+            height: 58px;
+            font-size: 1.35rem;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            font-family: var(--font-heading);
+            font-weight: 600;
+        }
+        .pin-btn:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+            border-color: var(--accent);
+        }
+        .pin-btn:active {
+            transform: scale(0.92);
+        }
+        .pin-btn-action {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            border-radius: var(--radius-md);
+        }
+        .pin-btn-action:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            box-shadow: none;
+            border-color: var(--glass-border-hover);
+        }
+
+        /* PLAYER DETAILS MODAL PROGRESS BARS */
+        .progress-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            height: 10px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--accent), var(--accent-dim));
+            box-shadow: 0 0 8px var(--accent);
+            border-radius: 10px;
+            width: 0;
+            transition: width 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* ==========================================================================
+           TOAST NOTIFICATION
+           ========================================================================== */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: rgba(10, 10, 18, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-left: 4px solid var(--accent);
+            color: #fff;
+            padding: 1rem 1.75rem;
+            border-radius: var(--radius-sm);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-left: auto;
+            animation: slideIn 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            min-width: 260px;
+        }
+
+        .toast-error { 
+            border-left-color: #ff477e; 
+        }
+
+        .toast-info { 
+            border-left-color: #00c3ff; 
+        }
+
+        .toast i {
+            font-size: 1.1rem;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(120%); }
+            to { transform: translateX(0); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+        
+        .empty-state i {
+            font-size: 3.5rem;
+            color: var(--accent);
+            margin-bottom: 1.25rem;
+            text-shadow: 0 0 10px var(--accent-glow);
+            opacity: 0.75;
+        }
+
+        /* Admin Only Display Classes */
+        .admin-only {
+            display: none !important;
+        }
+        body.is-admin .admin-only {
+            display: inline-flex !important;
+        }
+        body.is-admin div.admin-only.filters-bar {
+            display: flex !important;
+        }
+        body.is-admin div.admin-only.glass-panel {
+            display: block !important;
+        }
+
+        /* Dock responsive dimensions */
+        @media (max-width: 480px) {
+            .bottom-dock {
+                bottom: 1rem;
+                padding: 0.4rem 0.8rem;
+                gap: 0.4rem;
+                border-radius: 20px;
+            }
+            .dock-link {
+                width: 40px;
+                height: 40px;
+            }
+            .dock-logo {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+            }
+            .main-viewport {
+                padding: 2rem 1rem 8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cyber Background meshes -->
+    <div class="bg-cyber-grid"></div>
+    <div class="bg-glows"></div>
+
+    <div class="app-layout">
+        <!-- Centered Floating Bottom Cyber Dock -->
+        <nav class="bottom-dock" id="mainNav">
+            <div class="dock-logo" id="logoIconContainer" title="ESPORTS OS" onclick="document.querySelector('.dock-link[data-target=\'dashboard\']').click()">
+                <i class="fa-solid fa-radiation"></i>
+            </div>
+            
+            <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin: 0 0.25rem;"></div>
+
+            <div class="dock-link active" data-target="dashboard" data-tooltip="Dashboard">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div class="dock-link" data-target="team" data-tooltip="Roster">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="dock-link" data-target="tournaments" data-tooltip="Tournaments">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div class="dock-link admin-only" data-target="admin" id="navAdminPanel" data-tooltip="Command Center">
+                <i class="fa-solid fa-gears"></i>
+            </div>
+
+            <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin: 0 0.25rem;"></div>
+            
+            <div class="dock-link" onclick="App.Auth.toggle()" id="authBtn" data-tooltip="Admin Login">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+        </nav>
+
+        <!-- Main Workspace Viewport -->
+        <main class="main-viewport">
+            
+            <!-- Dashboard View -->
+            <section id="dashboard" class="view-section active">
+                <div class="dashboard-hero">
+                    <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                    <div class="hud-corner hud-bl"></div><div class="hud-corner hud-br"></div>
+                    <div class="hero-content">
+                        <div class="hero-tag">OPERATIONAL PROFILE</div>
+                        <h1 id="heroTeamName">Team Name</h1>
+                        <p class="hero-motto" id="heroMotto">Configure your team profile in the Command Center.</p>
+                    </div>
+                    <div class="hero-badge-container">
+                        <div class="hero-logo-large" id="heroLogoIcon">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card-premium">
+                        <div class="stat-icon-wrapper">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </div>
+                        <div class="stat-details">
+                            <div class="stat-num" id="statKills">0</div>
+                            <div class="stat-name">Total Kills</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card-premium">
+                        <div class="stat-icon-wrapper">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                        <div class="stat-details">
+                            <div class="stat-num" id="statBooyahs">0</div>
+                            <div class="stat-name">Booyahs</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card-premium">
+                        <div class="stat-icon-wrapper">
+                            <i class="fa-solid fa-medal"></i>
+                        </div>
+                        <div class="stat-details">
+                            <div class="stat-num" id="statTournaments">0</div>
+                            <div class="stat-name">Championships</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Roster View -->
+            <section id="team" class="view-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                    <h1>Main Roster</h1>
+                    <button class="btn-neon admin-only" onclick="App.Team.openAddModal()"><i class="fa-solid fa-user-plus"></i> Recruit Player</button>
+                </div>
+
+                <!-- Roster Banner Photo -->
+                <div id="rosterGroupPhotoCard" class="glass-panel" style="padding: 0; height: 350px; margin-bottom: 2.5rem; overflow: hidden; display: none;">
+                    <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                    <div class="hud-corner hud-bl"></div><div class="hud-corner hud-br"></div>
+                    <img id="rosterGroupImg" src="" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.75;" alt="Team Roster Group">
+                    <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 2.5rem 2.5rem 2rem; background: linear-gradient(to top, #06060c 0%, rgba(6, 6, 12, 0.7) 60%, transparent 100%);">
+                        <div class="hero-tag">OFFICIAL RALLY</div>
+                        <h2 id="rosterGroupTitle" style="font-size: 2.5rem; margin-bottom: 0.25rem;">TEAM ROSTER</h2>
+                        <p id="rosterGroupMotto" style="color: var(--text-muted); font-size: 0.95rem;"></p>
+                    </div>
+                </div>
+
+                <!-- Filters & Search Bar -->
+                <div class="filters-bar glass-panel">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="rosterSearch" placeholder="Search players by IGN or Name..." class="input-glass" oninput="App.Team.render()">
+                    </div>
+                    <div class="filter-controls">
+                        <select id="roleFilter" class="input-glass" onchange="App.Team.render()">
+                            <option value="all">All Roles</option>
+                            <option value="Rusher">Rusher</option>
+                            <option value="Sniper">Sniper</option>
+                            <option value="Bomber">Bomber</option>
+                            <option value="Assaulter">Assaulter</option>
+                            <option value="Support">Support</option>
+                            <option value="IGL">IGL (Leader)</option>
+                        </select>
+                        <select id="rosterSort" class="input-glass" onchange="App.Team.render()">
+                            <option value="default">Default Sort</option>
+                            <option value="ign">Sort by IGN</option>
+                            <option value="kills">Sort by Kills (High-Low)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="rosterGrid" class="roster-grid"></div>
+            </section>
+
+            <!-- Tournaments View -->
+            <section id="tournaments" class="view-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <h1>Tournament Center</h1>
+                    <button class="btn-neon admin-only tourney-section-control" id="btnRecordEvent" onclick="App.Tournaments.openAddModal()"><i class="fa-solid fa-file-invoice"></i> Record Event</button>
+                    <button class="btn-neon admin-only tourney-section-control" id="btnScheduleEvent" onclick="App.Upcoming.openAddModal()" style="display: none;"><i class="fa-solid fa-calendar-plus"></i> Schedule Event</button>
+                </div>
+
+                <div class="sub-tabs-container">
+                    <button class="sub-tab-btn active" id="btnTabHistory" onclick="App.Tournaments.switchSubTab('history')">Championship History</button>
+                    <button class="sub-tab-btn" id="btnTabUpcoming" onclick="App.Tournaments.switchSubTab('upcoming')">Upcoming Schedule</button>
+                </div>
+
+                <!-- History Filters Bar -->
+                <div class="filters-bar glass-panel tourney-section-control" id="historyControls">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="tourneySearch" placeholder="Search history by title..." class="input-glass" oninput="App.Tournaments.render()">
+                    </div>
+                    <div class="filter-controls">
+                        <select id="tourneyFilter" class="input-glass" onchange="App.Tournaments.render()">
+                            <option value="all">All Placements</option>
+                            <option value="1st">1st Place (Champions)</option>
+                            <option value="2nd">2nd Place</option>
+                            <option value="3rd">3rd Place</option>
+                            <option value="other">Other Placements</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Upcoming Filters Bar -->
+                <div class="filters-bar glass-panel tourney-section-control" id="upcomingControls" style="display: none;">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="upcomingSearch" placeholder="Search schedule by title..." class="input-glass" oninput="App.Upcoming.render()">
+                    </div>
+                    <div class="filter-controls">
+                        <select id="upcomingFilter" class="input-glass" onchange="App.Upcoming.render()">
+                            <option value="all">All Statuses</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Registration Open">Registration Open</option>
+                            <option value="Ongoing">Ongoing</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="tournamentList" class="tournament-list-container tourney-section-control"></div>
+                <div id="upcomingList" class="tournament-list-container tourney-section-control" style="display: none;"></div>
+            </section>
+
+            <!-- Command Center View (Admin Only) -->
+            <section id="admin" class="view-section">
+                <h1 style="margin-bottom: 2rem;">Command Center</h1>
+                
+                <div class="admin-grid">
+                    <div class="glass-panel">
+                        <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                        <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-palette" style="color: var(--accent); margin-right: 0.5rem;"></i> Theme Controls</h3>
+                        
+                        <div class="input-group">
+                            <label>Visual Presets</label>
+                            <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                                <button class="preset-btn" id="preset-cyber" onclick="App.Admin.selectPreset('cyber')" style="background: #a855f7;" title="Cyber Violet"></button>
+                                <button class="preset-btn" id="preset-blood" onclick="App.Admin.selectPreset('blood')" style="background: #ef4444;" title="Pulse Red"></button>
+                                <button class="preset-btn" id="preset-toxic" onclick="App.Admin.selectPreset('toxic')" style="background: #22c55e;" title="Hazard Green"></button>
+                                <button class="preset-btn" id="preset-aqua" onclick="App.Admin.selectPreset('aqua')" style="background: #06b6d4;" title="Aqua Laser"></button>
+                                <button class="preset-btn" id="preset-gold" onclick="App.Admin.selectPreset('gold')" style="background: #eab308;" title="Solar Gold"></button>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Accent Color Hue (<span id="hueVal">280</span>°)</label>
+                            <input type="range" id="themeHue" min="0" max="360" value="280" class="input-glass" style="padding: 0; cursor: pointer;" oninput="App.Admin.onSliderChange()">
+                        </div>
+                        <div class="input-group">
+                            <label>Blur Intensity (<span id="blurVal">16</span>px)</label>
+                            <input type="range" id="themeBlur" min="0" max="40" value="16" class="input-glass" style="padding: 0; cursor: pointer;" oninput="App.Admin.onSliderChange()">
+                        </div>
+                        <button class="btn-neon btn-solid" style="width: 100%; margin-top: 0.5rem;" onclick="App.Admin.saveTheme()">Save Configuration</button>
+                    </div>
+
+                    <div class="glass-panel">
+                        <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                        <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-id-card" style="color: var(--accent); margin-right: 0.5rem;"></i> Squad Profile</h3>
+                        <div class="input-group">
+                            <label>Team Name</label>
+                            <input type="text" id="adminTeamName" class="input-glass" placeholder="e.g. EVOS Esports">
+                        </div>
+                        <div class="input-group">
+                            <label>Team Motto</label>
+                            <input type="text" id="adminMotto" class="input-glass" placeholder="e.g. Roar to Win">
+                        </div>
+                        <div class="input-group">
+                            <label>Team Logo Image (URL)</label>
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <input type="text" id="adminTeamLogo" class="input-glass" placeholder="https://... (or leave blank to use defaults)">
+                                <input type="file" id="logoUploadFile" accept="image/*" style="display: none;" onchange="App.Admin.handleLogoUpload(event)">
+                                <button class="btn-neon" type="button" style="padding: 0.8rem 1.2rem; height: 46px; flex-shrink: 0;" onclick="document.getElementById('logoUploadFile').click()"><i class="fa-solid fa-upload"></i></button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Roster Group Photo (URL)</label>
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <input type="text" id="adminTeamGroupPhoto" class="input-glass" placeholder="../ODN ALL ROSTERS.png (or leave blank)">
+                                <input type="file" id="groupPhotoUploadFile" accept="image/*" style="display: none;" onchange="App.Admin.handleGroupPhotoUpload(event)">
+                                <button class="btn-neon" type="button" style="padding: 0.8rem 1.2rem; height: 46px; flex-shrink: 0;" onclick="document.getElementById('groupPhotoUploadFile').click()"><i class="fa-solid fa-upload"></i></button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Roster Photo Y-Position (<span id="photoYVal">50</span>%)</label>
+                            <input type="range" id="adminTeamGroupPhotoY" min="0" max="100" value="50" class="input-glass" style="padding: 0; cursor: pointer;" oninput="document.getElementById('photoYVal').innerText = this.value; App.Admin.previewPhotoY(this.value)">
+                        </div>
+                        <div class="input-group">
+                            <label>Fallback Icon Style (FontAwesome Class)</label>
+                            <input type="text" id="adminTeamIcon" class="input-glass" placeholder="e.g. fa-solid fa-fire">
+                        </div>
+                        <button class="btn-neon btn-solid" style="width: 100%; margin-top: 0.5rem;" onclick="App.Admin.saveProfile()">Update Profile</button>
+                    </div>
+
+                    <div class="glass-panel">
+                        <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                        <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-chart-simple" style="color: var(--accent); margin-right: 0.5rem;"></i> Dashboard Stats</h3>
+                        
+                        <div class="input-group">
+                            <label>Calculation Mode</label>
+                            <select id="adminStatsMode" class="input-glass" onchange="App.Admin.toggleStatsMode()">
+                                <option value="auto">Auto-Calculate from Roster</option>
+                                <option value="manual">Manual Stats Override</option>
+                            </select>
+                        </div>
+                        
+                        <div id="manualStatsInputs" style="display: none;">
+                            <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                                <div class="input-group">
+                                    <label>Total Kills</label>
+                                    <input type="number" id="adminManualKills" class="input-glass" min="0">
+                                </div>
+                                <div class="input-group">
+                                    <label>Booyahs</label>
+                                    <input type="number" id="adminManualBooyahs" class="input-glass" min="0">
+                                </div>
+                            </div>
+                            <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                                <div class="input-group" style="grid-column: span 2;">
+                                    <label>Championships</label>
+                                    <input type="number" id="adminManualChampionships" class="input-glass" min="0">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn-neon btn-solid" style="width: 100%; margin-top: 0.5rem;" onclick="App.Admin.saveStatsConfig()">Apply Stats Settings</button>
+                    </div>
+                    
+                    <div class="glass-panel">
+                        <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                        <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-key" style="color: var(--accent); margin-right: 0.5rem;"></i> Security Settings</h3>
+                        <div class="input-group">
+                            <label>Current Security PIN</label>
+                            <input type="password" id="sec_current_pin" class="input-glass" placeholder="••••" maxlength="4">
+                        </div>
+                        <div class="input-group">
+                            <label>New PIN (4 Digits)</label>
+                            <input type="password" id="sec_new_pin" class="input-glass" placeholder="••••" maxlength="4">
+                        </div>
+                        <div class="input-group">
+                            <label>Confirm New PIN</label>
+                            <input type="password" id="sec_confirm_pin" class="input-glass" placeholder="••••" maxlength="4">
+                        </div>
+                        <button class="btn-neon btn-solid" style="width: 100%; margin-top: 0.5rem;" onclick="App.Admin.changePin()">Update Command PIN</button>
+                    </div>
+
+                    <div class="glass-panel" style="grid-column: 1 / -1;">
+                        <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                        <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-database" style="color: var(--accent); margin-right: 0.5rem;"></i> System Data</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.5;">Manage and back up your organization's statistics, upcoming matches planner, and roster database.</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                            <button class="btn-neon" onclick="App.Admin.exportData()"><i class="fa-solid fa-file-export"></i> Backup Database</button>
+                            <input type="file" id="importFile" style="display: none;" onchange="App.Admin.importData(event)">
+                            <button class="btn-neon" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-file-import"></i> Restore Backup</button>
+                            <button class="btn-neon btn-danger" onclick="App.DB.factoryReset()"><i class="fa-solid fa-trash-can"></i> Hard System Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    
+    <!-- Player Add/Edit Modal -->
+    <div class="modal-overlay" id="playerModal">
+        <div class="glass-panel modal-content">
+            <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
+                <h3 id="playerModalTitle">Recruit Esports Athlete</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.5rem; color: var(--text-muted);" onclick="App.Modals.close('playerModal')"></i>
+            </div>
+            
+            <form id="playerForm" onsubmit="App.Team.savePlayer(event)">
+                <input type="hidden" id="player_id">
+                
+                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                    <div class="input-group">
+                        <label>In-Game Name (IGN)</label>
+                        <input type="text" id="p_ign" class="input-glass" required placeholder="e.g. VIPER">
+                    </div>
+                    <div class="input-group">
+                        <label>Real Name</label>
+                        <input type="text" id="p_name" class="input-glass" required placeholder="e.g. Nathan Drake">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Roles <span style="color: var(--text-muted); font-size: 0.75rem; text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-weight: 400;">(select all that apply)</span></label>
+                    <div id="p_role_checkboxes" style="display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; margin-top: 0.5rem;">
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" class="p_role_cb" value="Rusher" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;"> Rusher
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" class="p_role_cb" value="Sniper" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;"> Sniper
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" class="p_role_cb" value="Bomber" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;"> Bomber
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" class="p_role_cb" value="Assaulter" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;"> Assaulter
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" class="p_role_cb" value="Support" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;"> Support
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" class="p_role_cb" value="IGL" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;"> IGL (Leader)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Player Portrait (Photo Link)</label>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <input type="text" id="p_image" class="input-glass" placeholder="https://images.unsplash.com/... (leave blank for digital silhouette)">
+                        <input type="file" id="playerImageUploadFile" accept="image/*" style="display: none;" onchange="App.Team.handlePlayerImageUpload(event)">
+                        <button class="btn-neon" type="button" style="padding: 0.8rem 1.2rem; height: 46px; flex-shrink: 0;" onclick="document.getElementById('playerImageUploadFile').click()"><i class="fa-solid fa-upload"></i></button>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem; margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--accent);">Combat Performance Metrics</h4>
+                    
+                    <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                        <div class="input-group">
+                            <label>Matches</label>
+                            <input type="number" id="p_matches" class="input-glass" min="0" value="0" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Total Kills</label>
+                            <input type="number" id="p_kills" class="input-glass" min="0" value="0" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem; margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--accent);">Social Profiles</h4>
+                    
+                    <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                        <div class="input-group">
+                            <label>Instagram URL</label>
+                            <input type="text" id="p_insta" class="input-glass" placeholder="https://instagram.com/...">
+                        </div>
+                        <div class="input-group">
+                            <label>YouTube URL</label>
+                            <input type="text" id="p_youtube" class="input-glass" placeholder="https://youtube.com/c/...">
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-neon btn-solid" style="width: 100%;">Finalize Roster Record</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Historical Tournament Add/Edit Modal -->
+    <div class="modal-overlay" id="tournamentModal">
+        <div class="glass-panel modal-content">
+            <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
+                <h3 id="tournamentModalTitle">Log Tournament Performance</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.5rem; color: var(--text-muted);" onclick="App.Modals.close('tournamentModal')"></i>
+            </div>
+            
+            <form id="tournamentForm" onsubmit="App.Tournaments.saveTournament(event)">
+                <input type="hidden" id="tournament_id">
+                
+                <div class="input-group">
+                    <label>Championship Event Name</label>
+                    <input type="text" id="t_name" class="input-glass" placeholder="e.g. FFWS World Finals 2026" required>
+                </div>
+                
+                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                    <div class="input-group">
+                        <label>Squad Placement</label>
+                        <select id="t_placement" class="input-glass">
+                            <option value="1st Place (Champions)">1st Place (Champions)</option>
+                            <option value="2nd Place">2nd Place</option>
+                            <option value="3rd Place">3rd Place</option>
+                            <option value="Top 10">Top 10</option>
+                            <option value="Qualified">Qualified</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Tournament Description</label>
+                        <input type="text" id="t_desc" class="input-glass" placeholder="e.g. Grand stage qualification matches" required>
+                    </div>
+                </div>
+                
+                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                    <div class="input-group">
+                        <label>Date Conducted</label>
+                        <input type="date" id="t_date" class="input-glass" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Match Format</label>
+                        <select id="t_format" class="input-glass">
+                            <option value="Squad">Squad</option>
+                            <option value="Duo">Duo</option>
+                            <option value="Solo">Solo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Maps Played</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 0.5rem;" id="t_map_checkboxes">
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Bermuda" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Bermuda
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Purgatory" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Purgatory
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Kalahari" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Kalahari
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Alpine" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Alpine
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Nexterra" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Nexterra
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-neon btn-solid" style="width: 100%;">Record Championship Entry</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upcoming Tournament Add/Edit Modal -->
+    <div class="modal-overlay" id="upcomingModal">
+        <div class="glass-panel modal-content">
+            <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
+                <h3 id="upcomingModalTitle">Schedule Tournament Event</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.5rem; color: var(--text-muted);" onclick="App.Modals.close('upcomingModal')"></i>
+            </div>
+            
+            <form id="upcomingForm" onsubmit="App.Upcoming.saveTournament(event)">
+                <input type="hidden" id="upcoming_id">
+                
+                <div class="input-group">
+                    <label>Upcoming Event Name</label>
+                    <input type="text" id="u_name" class="input-glass" placeholder="e.g. Free Fire All Stars 2026" required>
+                </div>
+                
+                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                    <div class="input-group">
+                        <label>Current Status</label>
+                        <select id="u_status" class="input-glass">
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Registration Open">Registration Open</option>
+                            <option value="Ongoing">Ongoing</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Tournament Description</label>
+                        <input type="text" id="u_desc" class="input-glass" placeholder="e.g. Regional division matches, warmup roster tests" required>
+                    </div>
+                </div>
+                
+                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 0;">
+                    <div class="input-group">
+                        <label>Target Date</label>
+                        <input type="date" id="u_date" class="input-glass" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Format</label>
+                        <select id="u_format" class="input-glass">
+                            <option value="Squad">Squad</option>
+                            <option value="Duo">Duo</option>
+                            <option value="Solo">Solo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Target Maps</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 0.5rem;" id="u_map_checkboxes">
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Bermuda" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Bermuda
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Purgatory" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Purgatory
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Kalahari" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Kalahari
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Alpine" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Alpine
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #fff; font-size: 0.95rem;">
+                            <input type="checkbox" value="Nexterra" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;"> Nexterra
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-neon btn-solid" style="width: 100%;">Finalize Schedule Entry</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Security Auth Pad Modal -->
+    <div class="modal-overlay" id="pinModal">
+        <div class="glass-panel modal-content" style="max-width: 330px; text-align: center; padding: 2rem;">
+            <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+            <h3 style="margin-bottom: 0.5rem; letter-spacing: 2px;"><i class="fa-solid fa-shield-halved" style="color: var(--accent); margin-right: 0.5rem;"></i>Admin Verification</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Input command PIN to unlock write access</p>
+            
+            <div class="pin-display" style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            
+            <div class="pin-pad" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
+                <button class="pin-btn" onclick="App.Auth.pressKey('1')">1</button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('2')">2</button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('3')">3</button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('4')">4</button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('5')">5</button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('6')">6</button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('7')">7</button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('8')">8</button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('9')">9</button>
+                <button class="pin-btn pin-btn-action" onclick="App.Auth.clearPin()"><i class="fa-solid fa-delete-left"></i></button>
+                <button class="pin-btn" onclick="App.Auth.pressKey('0')">0</button>
+                <button class="pin-btn pin-btn-action" onclick="App.Modals.close('pinModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Hint: Default PIN is <span style="color: var(--accent);">1234</span> (or custom code)</div>
+        </div>
+    </div>
+
+    <!-- Player Details View Modal -->
+    <div class="modal-overlay" id="playerDetailsModal">
+        <div class="glass-panel modal-content" style="max-width: 650px; padding: 0; overflow: hidden;">
+            <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+            <!-- Banner image/gradient background -->
+            <div style="height: 140px; background: linear-gradient(135deg, rgba(var(--hue), 80%, 25%, 0.3), rgba(15,15,28,0.9)); position: relative; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.2rem; position: absolute; top: 1.5rem; right: 1.5rem; color: #fff; z-index: 10; width: 34px; height: 34px; background: rgba(0,0,0,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: var(--transition);" onclick="App.Modals.close('playerDetailsModal')" onmouseover="this.style.background='var(--accent)'; this.style.color='#000'" onmouseout="this.style.background='rgba(0,0,0,0.3)'; this.style.color='#fff'"></i>
+                <div style="position: absolute; bottom: -40px; left: 2rem; width: 100px; height: 100px; border-radius: var(--radius-md); overflow: hidden; border: 3px solid #090910; background: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+                    <img id="detail_playerImg" src="" alt="Player Avatar" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                    <div id="detail_playerFallback" class="player-fallback-avatar" style="position: static; height: 100%;">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                        <div class="player-fallback-text" id="detail_playerFallbackLetter" style="font-size: 1.3rem;">FF</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="padding: 3rem 2rem 2rem; background: #08080f;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 id="detail_playerIGN" style="font-size: 2.5rem; line-height: 1; margin-bottom: 0.25rem;">VIPER</h2>
+                        <div id="detail_playerRealName" style="color: var(--text-muted); font-size: 0.95rem;">Nathan Drake</div>
+                    </div>
+                    <div id="detail_playerRoleBadges" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0;"></div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+                    <div>
+                        <h4 style="font-family: var(--font-heading); color: var(--text-muted); font-size: 0.95rem; text-transform: uppercase; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; letter-spacing: 1px;">Vitals</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.95rem;">
+                                <span style="color: var(--text-muted);"><i class="fa-solid fa-gamepad" style="margin-right: 0.5rem; width: 16px;"></i> Matches:</span>
+                                <strong id="detail_playerMatches" style="color: #fff;">0</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.95rem;">
+                                <span style="color: var(--text-muted);"><i class="fa-solid fa-crosshairs" style="margin-right: 0.5rem; width: 16px;"></i> Total Kills:</span>
+                                <strong id="detail_playerKills" style="color: #fff;">0</strong>
+                            </div>
+                            <div style="font-size: 0.95rem;">
+                                <span style="color: var(--text-muted); display: block; margin-bottom: 0.5rem;"><i class="fa-solid fa-tag" style="margin-right: 0.5rem; width: 16px;"></i> Roles:</span>
+                                <div id="detail_playerRoles" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; gap: 1.25rem; font-size: 1.3rem;">
+                        <a href="#" id="detail_playerInsta" target="_blank" style="color: var(--text-muted); transition: var(--transition);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#" id="detail_playerYT" target="_blank" style="color: var(--text-muted); transition: var(--transition);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'"><i class="fa-brands fa-youtube"></i></a>
+                    </div>
+                    
+                    <div class="admin-only" style="display: flex; gap: 0.75rem;">
+                        <button class="btn-neon" id="detail_editBtn"><i class="fa-solid fa-pen"></i> Edit Profile</button>
+                        <button class="btn-neon btn-danger" id="detail_deleteBtn"><i class="fa-solid fa-user-minus"></i> Dismiss</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- JS Logic -->
+    <script>
+        const App = {
+            // High Quality Mock Data for Professional Presentation
+            MOCK: {
+                theme: { hue: 280, blur: 16 },
+                profile: { 
+                    name: 'VALORANT ESPORTS', 
+                    motto: 'Dominate the arena. Stay Antigravity.', 
+                    logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&fit=crop&q=80',
+                    groupPhoto: '../ODN ALL ROSTERS.png',
+                    groupPhotoY: 50,
+                    icon: 'fa-solid fa-radiation' 
+                },
+                players: [
+                    {
+                        id: "PL_1688190001",
+                        ign: "VIPER",
+                        name: "Nathan Drake",
+                        roles: ["IGL", "Rusher"],
+                        image: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&fit=crop&q=80",
+                        matches: 240,
+                        kills: 1105,
+                        insta: "https://instagram.com",
+                        youtube: "https://youtube.com"
+                    },
+                    {
+                        id: "PL_1688190002",
+                        ign: "CHRONO",
+                        name: "Alex Mercer",
+                        roles: ["Rusher", "Bomber"],
+                        image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&fit=crop&q=80",
+                        matches: 220,
+                        kills: 1254,
+                        insta: "https://instagram.com",
+                        youtube: "https://youtube.com"
+                    },
+                    {
+                        id: "PL_1688190003",
+                        ign: "SLAYER",
+                        name: "Marcus Fenix",
+                        roles: ["Sniper"],
+                        image: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400&fit=crop&q=80",
+                        matches: 215,
+                        kills: 980,
+                        insta: "https://instagram.com",
+                        youtube: "https://youtube.com"
+                    },
+                    {
+                        id: "PL_1688190004",
+                        ign: "GHOST",
+                        name: "Simon Riley",
+                        roles: ["Support", "IGL"],
+                        image: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=400&fit=crop&q=80",
+                        matches: 190,
+                        kills: 620,
+                        insta: "https://instagram.com",
+                        youtube: "https://youtube.com"
+                    }
+                ],
+                tournaments: [
+                    {
+                        id: "TR_1688190001",
+                        name: "Free Fire World Series 2026",
+                        placement: "1st Place (Champions)",
+                        desc: "Grand Championship Finals - Season 8",
+                        date: "2026-06-15",
+                        format: "Squad",
+                        map: "Bermuda"
+                    },
+                    {
+                        id: "TR_1688190002",
+                        name: "Snapdragon Pro Series World Finals",
+                        placement: "2nd Place",
+                        desc: "National Stage Qualifying Match",
+                        date: "2026-05-10",
+                        format: "Squad",
+                        map: "Purgatory, Kalahari"
+                    },
+                    {
+                        id: "TR_1688190003",
+                        name: "Free Fire Continental Cup 2026",
+                        placement: "1st Place (Champions)",
+                        desc: "Regional Playoffs - Offline Cup",
+                        date: "2026-04-02",
+                        format: "Squad",
+                        map: "Kalahari"
+                    }
+                ],
+                upcoming: [
+                    {
+                        id: "UT_1688190001",
+                        name: "Free Fire World Cup 2026",
+                        date: "2026-08-20",
+                        format: "Squad",
+                        map: "Bermuda, Purgatory",
+                        desc: "Global Bracket Stage - Qualified Group A",
+                        status: "Scheduled"
+                    },
+                    {
+                        id: "UT_1688190002",
+                        name: "FF Master League Season 11",
+                        date: "2026-07-28",
+                        format: "Squad",
+                        map: "Nexterra",
+                        desc: "Regional Division A - Weekly League",
+                        status: "Registration Open"
+                    }
+                ],
+                stats_config: {
+                    mode: 'auto',
+                    kills: 3959,
+                    booyahs: 2,
+                    championships: 3
+                }
+            },
+
+            // Utility Helper Methods
+            Utils: {
+                compressImage(file, maxDim, quality, callback) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = new Image();
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            
+                            // Scale down if larger than maxDim
+                            if (width > height) {
+                                if (width > maxDim) {
+                                    height = Math.round((height * maxDim) / width);
+                                    width = maxDim;
+                                }
+                            } else {
+                                if (height > maxDim) {
+                                    width = Math.round((width * maxDim) / height);
+                                    height = maxDim;
+                                }
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                            callback(compressedDataUrl);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            },
+
+            // Database Wrapper
+            DB: {
+                keys: {
+                    theme: 'ff_os_theme',
+                    profile: 'ff_os_profile',
+                    players: 'ff_os_players',
+                    tournaments: 'ff_os_tournaments',
+                    upcoming: 'ff_os_upcoming',
+                    stats_config: 'ff_os_stats_config',
+                    stats: 'ff_os_stats',
+                    auth: 'ff_os_auth'
+                },
+                get(key) {
+                    try { 
+                        const item = localStorage.getItem(this.keys[key]);
+                        return item ? JSON.parse(item) : null; 
+                    } catch (e) { 
+                        return null; 
+                    }
+                },
+                set(key, data) { 
+                    try {
+                        localStorage.setItem(this.keys[key], JSON.stringify(data)); 
+                    } catch (e) {
+                        console.error(e);
+                        App.UI.showToast("Database write failed. Storage quota exceeded.", "error");
+                    }
+                },
+                init() {
+                    // Check if fresh install
+                    const isInitialized = localStorage.getItem('ff_os_init');
+                    if (!isInitialized) {
+                        this.set('theme', App.MOCK.theme);
+                        this.set('profile', App.MOCK.profile);
+                        this.set('players', App.MOCK.players);
+                        this.set('tournaments', App.MOCK.tournaments);
+                        this.set('upcoming', App.MOCK.upcoming);
+                        this.set('stats_config', App.MOCK.stats_config);
+                        this.set('auth', false);
+                        localStorage.setItem('ff_os_pin', '1234');
+                        this.computeStats();
+                        localStorage.setItem('ff_os_init', 'true');
+                    } else {
+                        // Fallback setups if single keys are missing
+                        if (!this.get('theme')) this.set('theme', App.MOCK.theme);
+                        if (!this.get('profile')) {
+                            this.set('profile', App.MOCK.profile);
+                        } else {
+                            const currentProfile = this.get('profile');
+                            if (currentProfile && currentProfile.name === 'Team Obsidian' && currentProfile.logo === '../ODN LOGO.png') {
+                                currentProfile.name = 'VALORANT ESPORTS';
+                                currentProfile.logo = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&fit=crop&q=80';
+                                this.set('profile', currentProfile);
+                            }
+                            // Set default group photo for existing profiles if missing
+                            if (currentProfile) {
+                                if (!currentProfile.groupPhoto) currentProfile.groupPhoto = '../ODN ALL ROSTERS.png';
+                                if (currentProfile.groupPhotoY === undefined) currentProfile.groupPhotoY = 50;
+                                this.set('profile', currentProfile);
+                            }
+                        }
+                        if (!this.get('players')) this.set('players', []);
+                        if (!this.get('tournaments')) this.set('tournaments', []);
+                        if (!this.get('upcoming')) this.set('upcoming', App.MOCK.upcoming);
+                        if (!this.get('stats_config')) this.set('stats_config', App.MOCK.stats_config);
+                        if (this.get('auth') === null) this.set('auth', false);
+                        if (!localStorage.getItem('ff_os_pin')) localStorage.setItem('ff_os_pin', '1234');
+                    }
+                },
+                computeStats() {
+                    const config = this.get('stats_config') || { mode: 'auto', kills: 0, booyahs: 0, championships: 0 };
+                    
+                    if (config.mode === 'manual') {
+                        const stats = {
+                            kills: parseInt(config.kills || 0),
+                            booyahs: parseInt(config.booyahs || 0),
+                            tournaments: parseInt(config.championships || 0)
+                        };
+                        this.set('stats', stats);
+                        return stats;
+                    }
+                    
+                    // Auto-calculate logic (default)
+                    const players = this.get('players') || [];
+                    const tourneys = this.get('tournaments') || [];
+                    
+                    let kills = 0;
+                    players.forEach(p => {
+                        kills += parseInt(p.kills || 0);
+                    });
+                    
+                    let booyahs = 0;
+                    tourneys.forEach(t => {
+                        if (t.placement.includes('1st') || t.placement.toLowerCase().includes('champion')) {
+                            booyahs++;
+                        }
+                    });
+                    
+                    const stats = {
+                        kills: kills,
+                        booyahs: booyahs,
+                        tournaments: tourneys.length
+                    };
+                    this.set('stats', stats);
+                    return stats;
+                },
+                factoryReset() {
+                    if (confirm("WARNING: This will factory reset the complete portal database and load defaults. Proceed?")) {
+                        localStorage.clear();
+                        location.reload();
+                    }
+                }
+            },
+
+            // Authentication Engine
+            Auth: {
+                inputPin: '',
+                check() {
+                    const isAdmin = App.DB.get('auth');
+                    const adminElements = document.querySelectorAll('.admin-only');
+                    const authBtn = document.getElementById('authBtn');
+                    
+                    // IDs of sub-tab admin buttons that are controlled by the sub-tab switcher — don't let auth override them
+                    const subTabAdminBtns = new Set(['btnRecordEvent', 'btnScheduleEvent']);
+                    if (isAdmin) {
+                        document.body.classList.add('is-admin');
+                        authBtn.innerHTML = '<i class="fa-solid fa-unlock-keyhole" style="color: var(--accent);"></i>';
+                        authBtn.setAttribute('data-tooltip', 'Sign Out');
+                        adminElements.forEach(el => {
+                            if (el.id === 'navAdminPanel') {
+                                el.style.display = 'flex';
+                            } else if (!subTabAdminBtns.has(el.id)) {
+                                el.style.display = '';
+                            }
+                        });
+                    } else {
+                        document.body.classList.remove('is-admin');
+                        authBtn.innerHTML = '<i class="fa-solid fa-lock"></i>';
+                        authBtn.setAttribute('data-tooltip', 'Admin Login');
+                        adminElements.forEach(el => el.style.display = 'none');
+                        
+                        // If locked out, return to Dashboard automatically
+                        if (document.getElementById('admin').classList.contains('active')) {
+                            document.querySelector('.dock-link[data-target="dashboard"]').click();
+                        }
+                    }
+                },
+                toggle() {
+                    const isAdmin = App.DB.get('auth');
+                    if (isAdmin) {
+                        App.DB.set('auth', false);
+                        App.UI.showToast('Administrator logged out');
+                        this.check();
+                        App.Team.render();
+                        App.Tournaments.render();
+                        App.Upcoming.render();
+                    } else {
+                        this.clearPin();
+                        App.Modals.open('pinModal');
+                    }
+                },
+                pressKey(num) {
+                    if (this.inputPin.length >= 4) return;
+                    this.inputPin += num;
+                    this.updatePinDots();
+                    
+                    if (this.inputPin.length === 4) {
+                        setTimeout(() => {
+                            this.verifyPin();
+                        }, 250);
+                    }
+                },
+                clearPin() {
+                    this.inputPin = '';
+                    this.updatePinDots();
+                },
+                updatePinDots() {
+                    const dots = document.querySelectorAll('#pinModal .pin-dot');
+                    dots.forEach((dot, index) => {
+                        if (index < this.inputPin.length) {
+                            dot.classList.add('active');
+                        } else {
+                            dot.classList.remove('active');
+                        }
+                    });
+                },
+                verifyPin() {
+                    const storedPin = localStorage.getItem('ff_os_pin') || '1234';
+                    if (this.inputPin === storedPin) {
+                        App.DB.set('auth', true);
+                        App.UI.showToast('Administrator clearance granted');
+                        App.Modals.close('pinModal');
+                        this.check();
+                        App.Team.render();
+                        App.Tournaments.render();
+                        App.Upcoming.render();
+                    } else {
+                        App.UI.showToast('Invalid Access Code', 'error');
+                        this.clearPin();
+                    }
+                }
+            },
+
+            // Interface Handler
+            UI: {
+                showToast(message, type = 'success') {
+                    const container = document.getElementById('toast-container');
+                    const toast = document.createElement('div');
+                    toast.className = `toast ${type === 'error' ? 'toast-error' : (type === 'info' ? 'toast-info' : '')}`;
+                    
+                    let icon = 'circle-check';
+                    if (type === 'error') icon = 'circle-exclamation';
+                    if (type === 'info') icon = 'circle-info';
+                    
+                    toast.innerHTML = `<i class="fa-solid fa-${icon}"></i> <span>${message}</span>`;
+                    container.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateX(100%)';
+                        toast.style.transition = '0.35s ease';
+                        setTimeout(() => toast.remove(), 350);
+                    }, 4000);
+                },
+                applyTheme() {
+                    const theme = App.DB.get('theme') || { hue: 280, blur: 16 };
+                    document.documentElement.style.setProperty('--hue', theme.hue);
+                    document.documentElement.style.setProperty('--blur', `${theme.blur}px`);
+                    
+                    document.getElementById('themeHue').value = theme.hue;
+                    document.getElementById('themeBlur').value = theme.blur;
+                    document.getElementById('hueVal').innerText = theme.hue;
+                    document.getElementById('blurVal').innerText = theme.blur;
+
+                    // Sync active preset button highlight
+                    document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+                    const presets = {
+                        cyber: { hue: 280, blur: 16 },
+                        blood: { hue: 0, blur: 20 },
+                        toxic: { hue: 125, blur: 12 },
+                        aqua: { hue: 190, blur: 18 },
+                        gold: { hue: 45, blur: 15 }
+                    };
+                    for (const [key, val] of Object.entries(presets)) {
+                        if (theme.hue == val.hue) {
+                            document.getElementById(`preset-${key}`)?.classList.add('active');
+                        }
+                    }
+                },
+                updateDashboard() {
+                    const profile = App.DB.get('profile');
+                    const stats = App.DB.computeStats();
+                    const config = App.DB.get('stats_config') || { mode: 'auto', kills: 0, booyahs: 0, championships: 0 };
+                    
+                    document.getElementById('heroTeamName').innerText = profile.name;
+                    document.getElementById('heroMotto').innerText = profile.motto;
+
+                    // Team Logo loading visual sync
+                    const logoIcon = document.getElementById('logoIconContainer');
+                    const heroLogo = document.getElementById('heroLogoIcon');
+                    
+                    if (profile.logo && (profile.logo.startsWith('http') || profile.logo.startsWith('data:'))) {
+                        logoIcon.innerHTML = `<img src="${profile.logo}">`;
+                        heroLogo.innerHTML = `<img src="${profile.logo}">`;
+                    } else {
+                        // Initials Fallback
+                        const initials = (profile.name || 'FF').substring(0, 2).toUpperCase();
+                        logoIcon.innerHTML = `<div style="font-family: var(--font-heading); font-weight: 700; font-size: 1.15rem; color: #000; text-shadow: 0 1px 2px rgba(255,255,255,0.2);">${initials}</div>`;
+                        heroLogo.innerHTML = `<i class="${profile.icon || 'fa-solid fa-shield-halved'}"></i>`;
+                    }
+                    
+                    document.getElementById('statKills').innerText = stats.kills.toLocaleString();
+                    document.getElementById('statBooyahs').innerText = stats.booyahs;
+                    document.getElementById('statTournaments').innerText = stats.tournaments;
+
+                    // Update admin fields
+                    document.getElementById('adminTeamName').value = profile.name;
+                    document.getElementById('adminMotto').value = profile.motto;
+                    document.getElementById('adminTeamLogo').value = profile.logo || '';
+                    document.getElementById('adminTeamGroupPhoto').value = profile.groupPhoto || '';
+                    document.getElementById('adminTeamGroupPhotoY').value = profile.groupPhotoY !== undefined ? profile.groupPhotoY : 50;
+                    document.getElementById('photoYVal').innerText = profile.groupPhotoY !== undefined ? profile.groupPhotoY : 50;
+                    document.getElementById('adminTeamIcon').value = profile.icon || 'fa-solid fa-shield-halved';
+
+                    // Update manual stats config fields
+                    document.getElementById('adminStatsMode').value = config.mode;
+                    document.getElementById('adminManualKills').value = config.kills;
+                    document.getElementById('adminManualBooyahs').value = config.booyahs;
+                    document.getElementById('adminManualChampionships').value = config.championships;
+
+                    // Toggle stats input displays
+                    const inputs = document.getElementById('manualStatsInputs');
+                    if (config.mode === 'manual') {
+                        inputs.style.display = 'block';
+                    } else {
+                        inputs.style.display = 'none';
+                    }
+                }
+            },
+
+            // Navigation Router
+            Router: {
+                init() {
+                    const navLinks = document.querySelectorAll('.dock-link[data-target]');
+                    const sections = document.querySelectorAll('.view-section');
+
+                    navLinks.forEach(link => {
+                        link.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const target = link.getAttribute('data-target');
+                            
+                            navLinks.forEach(l => l.classList.remove('active'));
+                            link.classList.add('active');
+                            
+                            sections.forEach(s => s.classList.remove('active'));
+                            document.getElementById(target).classList.add('active');
+
+                            if (target === 'team') App.Team.render();
+                            if (target === 'tournaments') {
+                                // Default to history tab when navigating to tournaments view
+                                App.Tournaments.switchSubTab('history');
+                            }
+                            if (target === 'admin') App.UI.updateDashboard();
+                        });
+                    });
+                }
+            },
+
+            // Modal Controller
+            Modals: {
+                open(id) { 
+                    const modal = document.getElementById(id);
+                    modal.style.display = 'flex';
+                    setTimeout(() => modal.classList.add('active'), 10);
+                },
+                close(id) { 
+                    const modal = document.getElementById(id);
+                    modal.classList.remove('active');
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                        const form = modal.querySelector('form');
+                        if (form) form.reset();
+                    }, 300);
+                }
+            },
+
+            // Team/Roster Operations
+            Team: {
+                openAddModal() {
+                    document.getElementById('playerForm').reset();
+                    document.getElementById('player_id').value = '';
+                    // Clear role checkboxes
+                    document.querySelectorAll('.p_role_cb').forEach(cb => cb.checked = false);
+                    document.getElementById('playerModalTitle').innerText = 'Recruit Esports Athlete';
+                    App.Modals.open('playerModal');
+                },
+                openEditModal(id) {
+                    const players = App.DB.get('players') || [];
+                    const p = players.find(x => x.id === id);
+                    if (!p) return;
+
+                    document.getElementById('player_id').value = p.id;
+                    document.getElementById('p_ign').value = p.ign;
+                    document.getElementById('p_name').value = p.name;
+                    // Populate multi-role checkboxes
+                    const playerRoles = Array.isArray(p.roles) ? p.roles : (p.role ? [p.role] : []);
+                    document.querySelectorAll('.p_role_cb').forEach(cb => {
+                        cb.checked = playerRoles.includes(cb.value);
+                    });
+                    document.getElementById('p_image').value = p.image || '';
+                    document.getElementById('p_matches').value = p.matches || 0;
+                    document.getElementById('p_kills').value = p.kills || 0;
+                    document.getElementById('p_insta').value = p.insta || '';
+                    document.getElementById('p_youtube').value = p.youtube || '';
+
+                    document.getElementById('playerModalTitle').innerText = 'Update Roster Details';
+                    App.Modals.close('playerDetailsModal');
+                    App.Modals.open('playerModal');
+                },
+                handlePlayerImageUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    App.Utils.compressImage(file, 300, 0.8, (dataUrl) => {
+                        document.getElementById('p_image').value = dataUrl;
+                        App.UI.showToast("Local portrait image loaded & optimized");
+                    });
+                },
+                savePlayer(e) {
+                    e.preventDefault();
+                    const id = document.getElementById('player_id').value;
+                    const ign = document.getElementById('p_ign').value.trim().toUpperCase();
+                    const name = document.getElementById('p_name').value.trim();
+                    const roles = Array.from(document.querySelectorAll('.p_role_cb:checked')).map(cb => cb.value);
+                    if (roles.length === 0) {
+                        App.UI.showToast('Please select at least one role', 'error');
+                        return;
+                    }
+                    const image = document.getElementById('p_image').value.trim();
+                    const matches = parseInt(document.getElementById('p_matches').value) || 0;
+                    const kills = parseInt(document.getElementById('p_kills').value) || 0;
+                    const insta = document.getElementById('p_insta').value.trim();
+                    const youtube = document.getElementById('p_youtube').value.trim();
+
+                    let players = App.DB.get('players') || [];
+
+                    if (id) {
+                        // Edit Mode
+                        players = players.map(p => {
+                            if (p.id === id) {
+                                return { id, ign, name, roles, image, matches, kills, insta, youtube };
+                            }
+                            return p;
+                        });
+                        App.UI.showToast(`Updated record for ${ign}`);
+                    } else {
+                        // Add Mode
+                        const newPlayer = {
+                            id: 'PL_' + Date.now(),
+                            ign, name, roles, image, matches, kills, insta, youtube
+                        };
+                        players.push(newPlayer);
+                        App.UI.showToast(`Recruited player ${ign}`);
+                    }
+
+                    App.DB.set('players', players);
+                    App.DB.computeStats();
+                    App.Modals.close('playerModal');
+                    App.UI.updateDashboard();
+                    this.render();
+                },
+                deletePlayer(id) {
+                    const players = App.DB.get('players') || [];
+                    const p = players.find(x => x.id === id);
+                    if (!p) return;
+
+                    if (confirm(`Dismiss ${p.ign} from the main roster?`)) {
+                        const updated = players.filter(x => x.id !== id);
+                        App.DB.set('players', updated);
+                        App.DB.computeStats();
+                        App.Modals.close('playerDetailsModal');
+                        App.UI.showToast('Athlete dismissed from roster', 'info');
+                        App.UI.updateDashboard();
+                        this.render();
+                    }
+                },
+                viewDetails(id) {
+                    const players = App.DB.get('players') || [];
+                    const p = players.find(x => x.id === id);
+                    if (!p) return;
+
+                    // Bind detail fields
+                    document.getElementById('detail_playerIGN').innerText = p.ign;
+                    document.getElementById('detail_playerRealName').innerText = p.name;
+                    document.getElementById('detail_playerMatches').innerText = p.matches || 0;
+                    document.getElementById('detail_playerKills').innerText = (p.kills || 0).toLocaleString();
+
+                    // Render multi-role badges in detail header
+                    const playerRoles = Array.isArray(p.roles) ? p.roles : (p.role ? [p.role] : ['Player']);
+                    const roleBadgesEl = document.getElementById('detail_playerRoleBadges');
+                    roleBadgesEl.innerHTML = playerRoles.map(r => `<span class="role-badge" style="margin:0; padding: 0.35rem 0.85rem;">${r}</span>`).join('');
+
+                    // Render multi-role list in vitals section
+                    const detailRolesEl = document.getElementById('detail_playerRoles');
+                    detailRolesEl.innerHTML = playerRoles.map(r => `<span class="role-badge" style="margin:0; font-size:0.7rem;">${r}</span>`).join('');
+
+                    // Image fallback handling
+                    const imgEl = document.getElementById('detail_playerImg');
+                    const fallbackEl = document.getElementById('detail_playerFallback');
+                    const fallbackLetter = document.getElementById('detail_playerFallbackLetter');
+
+                    if (p.image && (p.image.startsWith('http') || p.image.startsWith('data:'))) {
+                        imgEl.src = p.image;
+                        imgEl.style.display = 'block';
+                        fallbackEl.style.display = 'none';
+                    } else {
+                        imgEl.style.display = 'none';
+                        fallbackEl.style.display = 'flex';
+                        fallbackLetter.innerText = p.ign.substring(0, 2).toUpperCase();
+                    }
+
+                    // Social links
+                    const instaLink = document.getElementById('detail_playerInsta');
+                    const ytLink = document.getElementById('detail_playerYT');
+                    
+                    if (p.insta) {
+                        instaLink.href = p.insta;
+                        instaLink.style.display = '';
+                    } else {
+                        instaLink.style.display = 'none';
+                    }
+                    if (p.youtube) {
+                        ytLink.href = p.youtube;
+                        ytLink.style.display = '';
+                    } else {
+                        ytLink.style.display = 'none';
+                    }
+
+                    // Setup buttons
+                    document.getElementById('detail_editBtn').onclick = () => this.openEditModal(p.id);
+                    document.getElementById('detail_deleteBtn').onclick = () => this.deletePlayer(p.id);
+
+                    App.Modals.open('playerDetailsModal');
+                },
+                render() {
+                    const players = App.DB.get('players') || [];
+                    const profile = App.DB.get('profile') || {};
+                    const isAdmin = App.DB.get('auth');
+                    
+                    // Render Group Photo Banner if set
+                    const photoCard = document.getElementById('rosterGroupPhotoCard');
+                    const photoImg = document.getElementById('rosterGroupImg');
+                    
+                    if (profile.groupPhoto && profile.groupPhoto.trim() !== '') {
+                        photoImg.src = profile.groupPhoto;
+                        photoImg.style.objectPosition = `center ${profile.groupPhotoY !== undefined ? profile.groupPhotoY : 50}%`;
+                        document.getElementById('rosterGroupTitle').innerText = profile.name + " ASSEMBLY";
+                        document.getElementById('rosterGroupMotto').innerText = profile.motto;
+                        photoCard.style.display = 'block';
+                    } else {
+                        photoCard.style.display = 'none';
+                    }
+
+                    const grid = document.getElementById('rosterGrid');
+                    grid.innerHTML = '';
+
+                    const searchQuery = document.getElementById('rosterSearch').value.toLowerCase().trim();
+                    const roleFilter = document.getElementById('roleFilter').value;
+                    const sortOption = document.getElementById('rosterSort').value;
+
+                    // Filter list — support multi-role arrays and legacy single role strings
+                    let filtered = players.filter(p => {
+                        const matchesSearch = p.ign.toLowerCase().includes(searchQuery) || p.name.toLowerCase().includes(searchQuery);
+                        const playerRoles = Array.isArray(p.roles) ? p.roles : (p.role ? [p.role] : []);
+                        const matchesRole = roleFilter === 'all' || playerRoles.includes(roleFilter);
+                        return matchesSearch && matchesRole;
+                    });
+
+                    // Sort list
+                    if (sortOption === 'ign') {
+                        filtered.sort((a, b) => a.ign.localeCompare(b.ign));
+                    } else if (sortOption === 'kills') {
+                        filtered.sort((a, b) => b.kills - a.kills);
+                    }
+
+                    if (filtered.length === 0) {
+                        grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><i class="fa-solid fa-ghost"></i><h2>Roster database is empty</h2><p>Click Recruit Player to expand the team.</p></div>`;
+                        return;
+                    }
+
+                    filtered.forEach(p => {
+                        let deleteBtn = isAdmin ? `<button class="btn-neon btn-danger" style="padding: 0.5rem 0.6rem; font-size: 0.8rem;" onclick="event.stopPropagation(); App.Team.deletePlayer('${p.id}')" title="Dismiss Athlete"><i class="fa-solid fa-user-xmark"></i></button>` : '';
+                        let editBtn = isAdmin ? `<button class="btn-neon" style="padding: 0.5rem 0.6rem; font-size: 0.8rem;" onclick="event.stopPropagation(); App.Team.openEditModal('${p.id}')" title="Edit Profile"><i class="fa-solid fa-pen-to-square"></i></button>` : '';
+
+                        let playerImgHtml = '';
+                        if (p.image && (p.image.startsWith('http') || p.image.startsWith('data:'))) {
+                            playerImgHtml = `
+                                <img src="${p.image}" alt="${p.ign}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="player-fallback-avatar" style="display:none;">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                                    <div class="player-fallback-text">${p.ign.substring(0, 2).toUpperCase()}</div>
+                                </div>
+                            `;
+                        } else {
+                            playerImgHtml = `
+                                <div class="player-fallback-avatar" style="display:flex;">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                                    <div class="player-fallback-text">${p.ign.substring(0, 2).toUpperCase()}</div>
+                                </div>
+                            `;
+                        }
+
+                        const cardRoles = Array.isArray(p.roles) ? p.roles : (p.role ? [p.role] : ['Player']);
+                        const roleBadgesHtml = cardRoles.map(r => `<span class="role-badge" style="margin: 0 0.2rem 0.2rem 0; padding: 0.2rem 0.55rem; font-size: 0.62rem;">${r}</span>`).join('');
+
+                        grid.innerHTML += `
+                            <div class="player-card-premium" onclick="App.Team.viewDetails('${p.id}')">
+                                <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                                <div class="hud-corner hud-bl"></div><div class="hud-corner hud-br"></div>
+                                <div class="image-container">
+                                    ${playerImgHtml}
+                                </div>
+                                <div class="card-overlay">
+                                    <div style="display: flex; flex-wrap: wrap; margin-bottom: 0.3rem;">${roleBadgesHtml}</div>
+                                    <div class="player-ign">${p.ign}</div>
+                                    <div class="player-name">${p.name}</div>
+                                    <div class="mini-stats">
+                                        <div class="mini-stat-item">
+                                            <div class="mini-stat-val">${p.matches || 0}</div>
+                                            <div class="mini-stat-lbl">Matches</div>
+                                        </div>
+                                        <div class="mini-stat-item" style="border-left: 1px solid rgba(255, 255, 255, 0.05); padding-left: 0.5rem;">
+                                            <div class="mini-stat-val">${p.kills || 0}</div>
+                                            <div class="mini-stat-lbl">Kills</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-actions">
+                                    ${editBtn}
+                                    ${deleteBtn}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            },
+
+            // Historical Tournaments
+            Tournaments: {
+                openAddModal() {
+                    document.getElementById('tournamentForm').reset();
+                    document.getElementById('tournament_id').value = '';
+                    // Reset map checkboxes
+                    document.querySelectorAll('#t_map_checkboxes input').forEach(cb => cb.checked = false);
+                    document.getElementById('tournamentModalTitle').innerText = 'Log Tournament Performance';
+                    App.Modals.open('tournamentModal');
+                },
+                openEditModal(id) {
+                    const tourneys = App.DB.get('tournaments') || [];
+                    const t = tourneys.find(x => x.id === id);
+                    if (!t) return;
+
+                    document.getElementById('tournament_id').value = t.id;
+                    document.getElementById('t_name').value = t.name;
+                    document.getElementById('t_placement').value = t.placement;
+                    document.getElementById('t_desc').value = t.desc || t.prize || '';
+                    document.getElementById('t_date').value = t.date;
+                    document.getElementById('t_format').value = t.format || 'Squad';
+                    
+                    // Check appropriate map boxes
+                    const selectedMaps = t.map || '';
+                    document.querySelectorAll('#t_map_checkboxes input').forEach(cb => {
+                        cb.checked = selectedMaps.includes(cb.value);
+                    });
+
+                    document.getElementById('tournamentModalTitle').innerText = 'Update Tournament Result';
+                    App.Modals.open('tournamentModal');
+                },
+                saveTournament(e) {
+                    e.preventDefault();
+                    const id = document.getElementById('tournament_id').value;
+                    const name = document.getElementById('t_name').value.trim();
+                    const placement = document.getElementById('t_placement').value;
+                    const desc = document.getElementById('t_desc').value.trim();
+                    const date = document.getElementById('t_date').value;
+                    const format = document.getElementById('t_format').value;
+                    
+                    // Extract multiple map select array
+                    const checkedBoxes = document.querySelectorAll('#t_map_checkboxes input:checked');
+                    const mapArray = Array.from(checkedBoxes).map(cb => cb.value);
+                    const map = mapArray.length > 0 ? mapArray.join(', ') : 'None';
+
+                    let tourneys = App.DB.get('tournaments') || [];
+
+                    if (id) {
+                        // Edit Mode
+                        tourneys = tourneys.map(t => {
+                            if (t.id === id) {
+                                return { id, name, placement, desc, date, format, map };
+                            }
+                            return t;
+                        });
+                        App.UI.showToast(`Updated record for ${name}`);
+                    } else {
+                        // Add Mode
+                        const newTourney = {
+                            id: 'TR_' + Date.now(),
+                            name, placement, desc, date, format, map
+                        };
+                        tourneys.push(newTourney);
+                        App.UI.showToast(`Registered tournament result for ${name}`);
+                    }
+
+                    App.DB.set('tournaments', tourneys);
+                    App.DB.computeStats();
+                    App.Modals.close('tournamentModal');
+                    App.UI.updateDashboard();
+                    this.render();
+                },
+                deleteTournament(id) {
+                    if (confirm('Permanently delete tournament record?')) {
+                        const tourneys = App.DB.get('tournaments') || [];
+                        const updated = tourneys.filter(x => x.id !== id);
+                        App.DB.set('tournaments', updated);
+                        App.DB.computeStats();
+                        App.UI.showToast('Tournament record removed', 'info');
+                        App.UI.updateDashboard();
+                        this.render();
+                    }
+                },
+                _activeSubTab: 'history',
+                switchSubTab(tab) {
+                    this._activeSubTab = tab;
+                    const btnHistory = document.getElementById('btnTabHistory');
+                    const btnUpcoming = document.getElementById('btnTabUpcoming');
+                    const isAdmin = App.DB.get('auth');
+
+                    // Hide all sub-tab controlled elements first
+                    document.getElementById('btnRecordEvent').style.display = 'none';
+                    document.getElementById('btnScheduleEvent').style.display = 'none';
+                    document.getElementById('historyControls').style.display = 'none';
+                    document.getElementById('upcomingControls').style.display = 'none';
+                    document.getElementById('tournamentList').style.display = 'none';
+                    document.getElementById('upcomingList').style.display = 'none';
+                    
+                    if (tab === 'history') {
+                        btnHistory.classList.add('active');
+                        btnUpcoming.classList.remove('active');
+                        if (isAdmin) document.getElementById('btnRecordEvent').style.display = '';
+                        document.getElementById('historyControls').style.display = 'flex';
+                        document.getElementById('tournamentList').style.display = 'flex';
+                        this.render();
+                    } else {
+                        btnUpcoming.classList.add('active');
+                        btnHistory.classList.remove('active');
+                        if (isAdmin) document.getElementById('btnScheduleEvent').style.display = '';
+                        document.getElementById('upcomingControls').style.display = 'flex';
+                        document.getElementById('upcomingList').style.display = 'flex';
+                        App.Upcoming.render();
+                    }
+                },
+                render() {
+                    const tourneys = App.DB.get('tournaments') || [];
+                    const isAdmin = App.DB.get('auth');
+                    const list = document.getElementById('tournamentList');
+                    list.innerHTML = '';
+
+                    const searchQuery = document.getElementById('tourneySearch').value.toLowerCase().trim();
+                    const placementFilter = document.getElementById('tourneyFilter').value;
+
+                    // Filter list
+                    let filtered = tourneys.filter(t => {
+                        const matchesSearch = t.name.toLowerCase().includes(searchQuery);
+                        let matchesPlacement = true;
+                        
+                        if (placementFilter === '1st') {
+                            matchesPlacement = t.placement.includes('1st') || t.placement.toLowerCase().includes('champion');
+                        } else if (placementFilter === '2nd') {
+                            matchesPlacement = t.placement.includes('2nd');
+                        } else if (placementFilter === '3rd') {
+                            matchesPlacement = t.placement.includes('3rd');
+                        } else if (placementFilter === 'other') {
+                            matchesPlacement = !t.placement.includes('1st') && !t.placement.includes('2nd') && !t.placement.includes('3rd') && !t.placement.toLowerCase().includes('champion');
+                        }
+                        
+                        return matchesSearch && matchesPlacement;
+                    });
+
+                    if (filtered.length === 0) {
+                        list.innerHTML = `<div class="glass-panel empty-state"><i class="fa-solid fa-trophy"></i><p>No tournament records match search query.</p></div>`;
+                        return;
+                    }
+
+                    // Sort newest first
+                    filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+                        let deleteBtn = isAdmin ? `<button class="btn-neon btn-danger" style="padding: 0.5rem; border:none;" onclick="App.Tournaments.deleteTournament('${t.id}')"><i class="fa-solid fa-trash"></i></button>` : '';
+                        let editBtn = isAdmin ? `<button class="btn-neon" style="padding: 0.5rem; border:none; margin-right: 0.25rem;" onclick="App.Tournaments.openEditModal('${t.id}')"><i class="fa-solid fa-pen"></i></button>` : '';
+                        
+                        let placementClass = '';
+                        let placementColor = 'var(--text-main)';
+                        if (t.placement.includes('1st') || t.placement.toLowerCase().includes('champion')) {
+                            placementClass = 'gold-placement';
+                            placementColor = '#ffd700';
+                        } else if (t.placement.includes('2nd')) {
+                            placementClass = 'silver-placement';
+                            placementColor = '#c0c0c0';
+                        } else if (t.placement.includes('3rd')) {
+                            placementClass = 'bronze-placement';
+                            placementColor = '#cd7f32';
+                        }
+
+                        // Robust fallback from old database instances
+                        const displayDesc = t.desc || t.prize || 'No tournament description';
+
+                        list.innerHTML += `
+                            <div class="tournament-card-premium ${placementClass}">
+                                <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                                <div class="hud-corner hud-bl"></div><div class="hud-corner hud-br"></div>
+                                <div class="tourney-main">
+                                    <div class="tourney-trophy">
+                                        <i class="fa-solid fa-trophy"></i>
+                                    </div>
+                                    <div>
+                                        <div class="tourney-name">${t.name}</div>
+                                        <div class="tourney-subtext" style="gap: 1.25rem; flex-wrap: wrap;">
+                                            <span><i class="fa-regular fa-calendar"></i> ${new Date(t.date + 'T00:00:00').toLocaleDateString()}</span>
+                                            <span style="color: var(--accent);"><i class="fa-solid fa-file-lines"></i> ${displayDesc}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tourney-stat-block">
+                                    <div class="tourney-stat-lbl">Format</div>
+                                    <div class="tourney-stat-val">${t.format || 'Squad'}</div>
+                                </div>
+                                <div class="tourney-stat-block">
+                                    <div class="tourney-stat-lbl">Map</div>
+                                    <div class="tourney-stat-val" style="font-size: 0.95rem; line-height: 1.3;">${t.map || 'Bermuda'}</div>
+                                </div>
+                                <div class="tourney-stat-block" style="text-align: right; justify-content: center;">
+                                    <div class="tourney-placement-highlight" style="color: ${placementColor}">${t.placement}</div>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: flex-end;">
+                                    ${editBtn}
+                                    ${deleteBtn}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            },
+
+            // Upcoming Tournaments
+            Upcoming: {
+                openAddModal() {
+                    document.getElementById('upcomingForm').reset();
+                    document.getElementById('upcoming_id').value = '';
+                    // Reset map checkboxes
+                    document.querySelectorAll('#u_map_checkboxes input').forEach(cb => cb.checked = false);
+                    document.getElementById('upcomingModalTitle').innerText = 'Schedule Tournament Event';
+                    App.Modals.open('upcomingModal');
+                },
+                openEditModal(id) {
+                    const upcoming = App.DB.get('upcoming') || [];
+                    const u = upcoming.find(x => x.id === id);
+                    if (!u) return;
+
+                    document.getElementById('upcoming_id').value = u.id;
+                    document.getElementById('u_name').value = u.name;
+                    document.getElementById('u_status').value = u.status;
+                    document.getElementById('u_desc').value = u.desc || u.prize || '';
+                    document.getElementById('u_date').value = u.date;
+                    document.getElementById('u_format').value = u.format || 'Squad';
+                    
+                    // Check map checkboxes
+                    const selectedMaps = u.map || '';
+                    document.querySelectorAll('#u_map_checkboxes input').forEach(cb => {
+                        cb.checked = selectedMaps.includes(cb.value);
+                    });
+
+                    document.getElementById('upcomingModalTitle').innerText = 'Update Scheduled Event';
+                    App.Modals.open('upcomingModal');
+                },
+                saveTournament(e) {
+                    e.preventDefault();
+                    const id = document.getElementById('upcoming_id').value;
+                    const name = document.getElementById('u_name').value.trim();
+                    const status = document.getElementById('u_status').value;
+                    const desc = document.getElementById('u_desc').value.trim();
+                    const date = document.getElementById('u_date').value;
+                    const format = document.getElementById('u_format').value;
+                    
+                    // Extract multiple map select array
+                    const checkedBoxes = document.querySelectorAll('#u_map_checkboxes input:checked');
+                    const mapArray = Array.from(checkedBoxes).map(cb => cb.value);
+                    const map = mapArray.length > 0 ? mapArray.join(', ') : 'None';
+
+                    let upcoming = App.DB.get('upcoming') || [];
+
+                    if (id) {
+                        // Edit Mode
+                        upcoming = upcoming.map(u => {
+                            if (u.id === id) {
+                                return { id, name, status, desc, date, format, map };
+                            }
+                            return u;
+                        });
+                        App.UI.showToast(`Updated schedule for ${name}`);
+                    } else {
+                        // Add Mode
+                        const newTourney = {
+                            id: 'UT_' + Date.now(),
+                            name, status, desc, date, format, map
+                        };
+                        upcoming.push(newTourney);
+                        App.UI.showToast(`Scheduled tournament: ${name}`);
+                    }
+
+                    App.DB.set('upcoming', upcoming);
+                    App.Modals.close('upcomingModal');
+                    this.render();
+                },
+                deleteTournament(id) {
+                    if (confirm('Permanently remove scheduled tournament?')) {
+                        const upcoming = App.DB.get('upcoming') || [];
+                        const updated = upcoming.filter(x => x.id !== id);
+                        App.DB.set('upcoming', updated);
+                        App.UI.showToast('Scheduled tournament removed', 'info');
+                        this.render();
+                    }
+                },
+                render() {
+                    const upcoming = App.DB.get('upcoming') || [];
+                    const isAdmin = App.DB.get('auth');
+                    const list = document.getElementById('upcomingList');
+                    list.innerHTML = '';
+
+                    const searchQuery = document.getElementById('upcomingSearch').value.toLowerCase().trim();
+                    const filterStatus = document.getElementById('upcomingFilter').value;
+
+                    // Filter list
+                    let filtered = upcoming.filter(u => {
+                        const matchesSearch = u.name.toLowerCase().includes(searchQuery);
+                        const matchesStatus = filterStatus === 'all' || u.status === filterStatus;
+                        return matchesSearch && matchesStatus;
+                    });
+
+                    if (filtered.length === 0) {
+                        list.innerHTML = `<div class="glass-panel empty-state"><i class="fa-solid fa-calendar-day"></i><p>No upcoming tournaments match schedule filter.</p></div>`;
+                        return;
+                    }
+
+                    // Sort chronological (soonest first)
+                    filtered.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(u => {
+                        let deleteBtn = isAdmin ? `<button class="btn-neon btn-danger" style="padding: 0.5rem; border:none;" onclick="App.Upcoming.deleteTournament('${u.id}')"><i class="fa-solid fa-trash"></i></button>` : '';
+                        let editBtn = isAdmin ? `<button class="btn-neon" style="padding: 0.5rem; border:none; margin-right: 0.25rem;" onclick="App.Upcoming.openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>` : '';
+                        
+                        let statusClass = 'status-scheduled';
+                        if (u.status === 'Registration Open') statusClass = 'status-reg-open';
+                        if (u.status === 'Ongoing') statusClass = 'status-ongoing';
+
+                        const displayDesc = u.desc || u.prize || 'No tournament description';
+
+                        list.innerHTML += `
+                            <div class="tournament-card-premium">
+                                <div class="hud-corner hud-tl"></div><div class="hud-corner hud-tr"></div>
+                                <div class="hud-corner hud-bl"></div><div class="hud-corner hud-br"></div>
+                                <div class="tourney-main">
+                                    <div class="tourney-trophy">
+                                        <i class="fa-regular fa-calendar-check"></i>
+                                    </div>
+                                    <div>
+                                        <div class="tourney-name">${u.name}</div>
+                                        <div class="tourney-subtext" style="gap: 1.25rem; flex-wrap: wrap;">
+                                            <span><i class="fa-regular fa-clock"></i> ${new Date(u.date + 'T00:00:00').toLocaleDateString()}</span>
+                                            <span style="color: var(--accent);"><i class="fa-solid fa-file-lines"></i> ${displayDesc}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tourney-stat-block">
+                                    <div class="tourney-stat-lbl">Format</div>
+                                    <div class="tourney-stat-val">${u.format || 'Squad'}</div>
+                                </div>
+                                <div class="tourney-stat-block">
+                                    <div class="tourney-stat-lbl">Map</div>
+                                    <div class="tourney-stat-val" style="font-size: 0.95rem; line-height: 1.3;">${u.map || 'Bermuda'}</div>
+                                </div>
+                                <div class="tourney-stat-block" style="text-align: right; justify-content: center;">
+                                    <span class="status-badge ${statusClass}">${u.status}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: flex-end;">
+                                    ${editBtn}
+                                    ${deleteBtn}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            },
+
+            // Admin Actions
+            Admin: {
+                selectPreset(name) {
+                    const presets = {
+                        cyber: { hue: 280, blur: 16 },
+                        blood: { hue: 0, blur: 20 },
+                        toxic: { hue: 125, blur: 12 },
+                        aqua: { hue: 190, blur: 18 },
+                        gold: { hue: 45, blur: 15 }
+                    };
+                    const selected = presets[name];
+                    if (selected) {
+                        App.DB.set('theme', selected);
+                        App.UI.applyTheme();
+                    }
+                },
+                onSliderChange() {
+                    const hue = document.getElementById('themeHue').value;
+                    const blur = document.getElementById('themeBlur').value;
+                    
+                    document.documentElement.style.setProperty('--hue', hue);
+                    document.documentElement.style.setProperty('--blur', `${blur}px`);
+                    
+                    document.getElementById('hueVal').innerText = hue;
+                    document.getElementById('blurVal').innerText = blur;
+                },
+                saveTheme() {
+                    const hue = document.getElementById('themeHue').value;
+                    const blur = document.getElementById('themeBlur').value;
+                    
+                    App.DB.set('theme', { hue, blur });
+                    App.UI.applyTheme();
+                    App.UI.showToast('Visual profile saved');
+                },
+                previewPhotoY(val) {
+                    const img = document.getElementById('rosterGroupImg');
+                    if (img) {
+                        img.style.objectPosition = `center ${val}%`;
+                    }
+                },
+                handleLogoUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    App.Utils.compressImage(file, 200, 0.85, (dataUrl) => {
+                        document.getElementById('adminTeamLogo').value = dataUrl;
+                        App.UI.showToast("Local logo image loaded & optimized");
+                    });
+                },
+                handleGroupPhotoUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    App.Utils.compressImage(file, 1000, 0.75, (dataUrl) => {
+                        document.getElementById('adminTeamGroupPhoto').value = dataUrl;
+                        App.UI.showToast("Local group photo loaded & optimized");
+                        App.Admin.previewPhotoY(document.getElementById('adminTeamGroupPhotoY').value);
+                    });
+                },
+                saveProfile() {
+                    const name = document.getElementById('adminTeamName').value.trim();
+                    const motto = document.getElementById('adminMotto').value.trim();
+                    const logo = document.getElementById('adminTeamLogo').value.trim();
+                    const groupPhoto = document.getElementById('adminTeamGroupPhoto').value.trim();
+                    const groupPhotoY = parseInt(document.getElementById('adminTeamGroupPhotoY').value) || 50;
+                    const icon = document.getElementById('adminTeamIcon').value.trim();
+                    
+                    App.DB.set('profile', { name, motto, logo, groupPhoto, groupPhotoY, icon });
+                    App.UI.updateDashboard();
+                    App.Team.render();
+                    App.UI.showToast('Squad profile updated');
+                },
+                toggleStatsMode() {
+                    const mode = document.getElementById('adminStatsMode').value;
+                    const inputs = document.getElementById('manualStatsInputs');
+                    if (mode === 'manual') {
+                        inputs.style.display = 'block';
+                    } else {
+                        inputs.style.display = 'none';
+                    }
+                },
+                saveStatsConfig() {
+                    const mode = document.getElementById('adminStatsMode').value;
+                    const config = {
+                        mode: mode,
+                        kills: parseInt(document.getElementById('adminManualKills').value) || 0,
+                        booyahs: parseInt(document.getElementById('adminManualBooyahs').value) || 0,
+                        championships: parseInt(document.getElementById('adminManualChampionships').value) || 0
+                    };
+                    
+                    App.DB.set('stats_config', config);
+                    App.DB.computeStats();
+                    App.UI.updateDashboard();
+                    App.UI.showToast("Dashboard stats updated successfully!");
+                },
+                changePin() {
+                    const current = document.getElementById('sec_current_pin').value;
+                    const newPin = document.getElementById('sec_new_pin').value;
+                    const confirmPin = document.getElementById('sec_confirm_pin').value;
+                    const storedPin = localStorage.getItem('ff_os_pin') || '1234';
+                    
+                    if (current !== storedPin) {
+                        App.UI.showToast("Current security PIN is incorrect", "error");
+                        return;
+                    }
+                    if (newPin.length !== 4 || isNaN(newPin)) {
+                        App.UI.showToast("New PIN must be exactly 4 numbers", "error");
+                        return;
+                    }
+                    if (newPin !== confirmPin) {
+                        App.UI.showToast("PIN confirmation does not match", "error");
+                        return;
+                    }
+                    
+                    localStorage.setItem('ff_os_pin', newPin);
+                    App.UI.showToast("Access PIN changed successfully!");
+                    document.getElementById('sec_current_pin').value = '';
+                    document.getElementById('sec_new_pin').value = '';
+                    document.getElementById('sec_confirm_pin').value = '';
+                },
+                exportData() {
+                    const data = {
+                        theme: App.DB.get('theme'),
+                        profile: App.DB.get('profile'),
+                        players: App.DB.get('players'),
+                        tournaments: App.DB.get('tournaments'),
+                        upcoming: App.DB.get('upcoming'),
+                        stats_config: App.DB.get('stats_config'),
+                        pin: localStorage.getItem('ff_os_pin') || '1234'
+                    };
+                    
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.setAttribute("href", dataStr);
+                    downloadAnchor.setAttribute("download", `esports_os_db_${Date.now()}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                    App.UI.showToast("Database backup downloaded", "info");
+                },
+                importData(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (data.theme) App.DB.set('theme', data.theme);
+                            if (data.profile) App.DB.set('profile', data.profile);
+                            if (data.players) App.DB.set('players', data.players);
+                            if (data.tournaments) App.DB.set('tournaments', data.tournaments);
+                            if (data.upcoming) App.DB.set('upcoming', data.upcoming);
+                            if (data.stats_config) App.DB.set('stats_config', data.stats_config);
+                            if (data.pin) localStorage.setItem('ff_os_pin', data.pin);
+                            
+                            App.DB.computeStats();
+                            App.UI.showToast("Database restored successfully");
+                            setTimeout(() => { location.reload(); }, 1200);
+                        } catch (err) {
+                            App.UI.showToast("Database restoration failed - Invalid File", "error");
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            },
+
+            // System Initialization
+            boot() {
+                this.DB.init();
+                this.Auth.check();
+                this.UI.applyTheme();
+                this.UI.updateDashboard();
+                this.Router.init();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => { 
+            App.boot(); 
+        });
+    </script>
+</body>
+</html>
